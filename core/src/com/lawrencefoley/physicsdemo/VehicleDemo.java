@@ -33,7 +33,7 @@ public class VehicleDemo extends ApplicationAdapter
 {
 	SpriteBatch batch;
 	Sprite sprite;
-	Texture img;
+	Texture texture;
 	World world;
 	Box2DDebugRenderer debugRenderer;
 	Camera camera;
@@ -47,6 +47,9 @@ public class VehicleDemo extends ApplicationAdapter
 	RevoluteJoint motor2;
 	PrismaticJoint spring1;
 	PrismaticJoint spring2;
+	
+	
+	Fixture wheel2Fixture;
 
 	Sprite screen;
 	// Input input;
@@ -55,17 +58,21 @@ public class VehicleDemo extends ApplicationAdapter
 
 	Viewport viewport;
 
-	static float DEBUG_SCALE = 50.0F;
+	static float DEBUG_SCALE = 10.0F;
+	static final float PPM = 32.0f;
 
 	@Override
 	public void create()
 	{
-
+		texture = new Texture("car.jpg");
+		sprite = new Sprite(texture);
+		sprite.setSize(5f, 2f);
+		
 		Random random = new Random();
 
 		debugRenderer = new Box2DDebugRenderer();
 
-		camera = new OrthographicCamera(500, 500);
+		camera = new OrthographicCamera(Gdx.graphics.getWidth() / PPM, Gdx.graphics.getHeight() / PPM);
 
 		// Create a physics world, the heart of the simulation. The Vector passed in is gravity
 		world = new World(new Vector2(0, -10f), true);
@@ -78,7 +85,7 @@ public class VehicleDemo extends ApplicationAdapter
 		// Scale it by 100 as our box physics bodies are scaled down by 100
 		debugMatrix.scale(DEBUG_SCALE, DEBUG_SCALE, 1f);
 
-		viewport = new FillViewport(500, 500);
+		viewport = new FillViewport(1024, 768);
 
 		batch = new SpriteBatch();
 
@@ -112,26 +119,27 @@ public class VehicleDemo extends ApplicationAdapter
 		CircleShape circle = new CircleShape();
 		FixtureDef circleDef = new FixtureDef();
 		circleDef.shape = circle;
-		circleDef.density = 1.0f;
-		circleDef.friction = 0.7f;
+		circleDef.density = 0.001f;
+		circleDef.friction = 0.3f;
 		circleDef.restitution = 0.6f; // Make it bounce a little bit
-//		circleDef.filter.groupIndex = -1;
+		circleDef.filter.groupIndex = 1;
 		BodyDef bodyDef;
-//		for (int i = 0; i < 30; i++)
-//		{
-//			circle.setRadius(random.nextFloat() / 10 + 0.02f);
-//
-//			bodyDef = new BodyDef();
-//			bodyDef.type = BodyType.DynamicBody;
-//			bodyDef.position.set(random.nextFloat() * 5, random.nextFloat() * 5 + 5);
-//			bodyDef.allowSleep = true;
-//			bodyDef.linearDamping = 0.1f;
-//			bodyDef.angularDamping = 0.1f;
-//
-//			Body body = world.createBody(bodyDef);
-//			body.createFixture(circleDef);
-//
-//		}
+		
+		for (int i = 0; i < 500; i++)
+		{
+			circle.setRadius(random.nextFloat() / 10 + 0.08f);
+
+			bodyDef = new BodyDef();
+			bodyDef.type = BodyType.DynamicBody;
+			bodyDef.position.set((random.nextFloat() * 10) + 20, random.nextFloat() * 5 + 10);
+			bodyDef.allowSleep = true;
+			bodyDef.linearDamping = 0.1f;
+			bodyDef.angularDamping = 0.1f;
+
+			Body body = world.createBody(bodyDef);
+			body.createFixture(circleDef);
+
+		}
 
 		// Remember to dispose of any shapes after you're done with them!
 		// BodyDef and FixtureDef don't need disposing, but shapes do.
@@ -244,7 +252,7 @@ public class VehicleDemo extends ApplicationAdapter
 				wheel2 = world.createBody(bodyDef);
 			}
 
-			(i == 0 ? wheel1 : wheel2).createFixture(circleDef);
+			wheel2Fixture = (i == 0 ? wheel1 : wheel2).createFixture(circleDef);
 
 		}
 
@@ -263,16 +271,25 @@ public class VehicleDemo extends ApplicationAdapter
 	@Override
 	public void render()
 	{
+//		if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) && wheel1 != null)
+//		{
+//			world.destroyBody(wheel1);
+//			wheel1 = null;
+//			
+//		}
 		motor1.setMaxMotorTorque(0.0f);
 		motor2.setMaxMotorTorque(0.0f);
 		
 		motor1.setMotorSpeed(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? -150f : 0f);
 		motor1.setMaxMotorTorque(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? 40f : 0f);
+		motor2.setMotorSpeed(Gdx.input.isKeyPressed(Input.Keys.LEFT) ? 150f : 0f);
+		motor2.setMaxMotorTorque(Gdx.input.isKeyPressed(Input.Keys.LEFT) ? 40f : 0f);
+		
 		
 		//motor1.setMotorSpeed(Gdx.input.isKeyPressed(Input.Keys.LEFT) ? (float)(15 * Math.PI) : 0);
-		motor2.setMotorSpeed(Gdx.input.isKeyPressed(Input.Keys.LEFT) ? 150f : 0f);
+		
 		//motor1.setMaxMotorTorque(Gdx.input.isKeyPressed(Input.Keys.LEFT) ? (float) 15 : 0);
-		motor2.setMaxMotorTorque(Gdx.input.isKeyPressed(Input.Keys.LEFT) ? 40f : 0f);
+		
 		//motor1.setMaxMotorTorque(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? 0f : (float)(Math.PI * 17));
 		
 		//motor2.setMotorSpeed(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? (float)(-15 * Math.PI) : 0);
@@ -295,22 +312,49 @@ public class VehicleDemo extends ApplicationAdapter
 		// Generally in a real game, dont do this in the render loop, as you are tying the physics
 		// update rate to the frame rate, and vice versa
 		world.step(Gdx.graphics.getDeltaTime(), 6, 2);
-
+		
+		
 		// Now update the spritee position accordingly to it's now updated Physics body
 		// sprite.setPosition(body.getPosition().x, body.getPosition().y);
 
 		// You know the rest...
 		Gdx.gl.glClearColor(0, 0, 0, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		
+		
+		sprite.setPosition(cart.getPosition().x - sprite.getWidth() / 2, (cart.getPosition().y - sprite.getHeight() / 2) - 0.7f);
+//		sprite.setCenter(cart.getWorldCenter().x, cart.getWorldCenter().y);
+		sprite.setOriginCenter();
+		sprite.setRotation((float) Math.toDegrees(cart.getAngle()));
+		
+		camera.position.x = sprite.getX() + (PPM / 2) / 3;
+		camera.position.y = sprite.getY() + 2;
+		camera.update();
+		
+		System.out.println(camera.position.x);
 
-		batch.setProjectionMatrix(debugMatrix);
+		// Create a copy of camera projection matrix
+		debugMatrix = new Matrix4(camera.combined);
 
+		// BoxObjectManager.BOX_TO_WORLD = 100f
+		// Scale it by 100 as our box physics bodies are scaled down by 100
+		debugMatrix.scale(DEBUG_SCALE, DEBUG_SCALE, 1f);
+
+		
+		
+		
+		
+		//batch.setProjectionMatrix(camera.combined.scale(DEBUG_SCALE, DEBUG_SCALE, 1f));
+		batch.setProjectionMatrix(camera.combined);
 		batch.begin();
-
+		sprite.draw(batch);
 		// debugRenderer.render(world, camera.combined);
-		debugRenderer.render(world, debugMatrix);
+		
 		// batch.draw(sprite, sprite.getX(), sprite.getY());
 		batch.end();
+		
+		debugRenderer.render(world, camera.combined);
+		//debugRenderer.render(world, debugMatrix);
 	}
 
 	@Override
