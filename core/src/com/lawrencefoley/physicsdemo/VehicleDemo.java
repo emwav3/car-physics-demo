@@ -29,11 +29,14 @@ import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
 import com.badlogic.gdx.utils.viewport.FillViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
+
 public class VehicleDemo extends ApplicationAdapter
 {
 	SpriteBatch batch;
 	Sprite sprite;
 	Texture texture;
+	Sprite groundSprite;
+	Texture groundTexture;
 	World world;
 	Box2DDebugRenderer debugRenderer;
 	Camera camera;
@@ -65,15 +68,21 @@ public class VehicleDemo extends ApplicationAdapter
 	public void create()
 	{
 		texture = new Texture("car.jpg");
+		groundTexture = new Texture("terrain-test.png");
+		groundSprite = new Sprite(groundTexture);
+		groundSprite.setSize(1000 / PPM, 200 / PPM);
+		groundSprite.setPosition(-5, -11f);
+		
 		sprite = new Sprite(texture);
-		sprite.setSize(5f, 2f);
+		sprite.setSize(6, 3);
 		
 		Random random = new Random();
 
 		debugRenderer = new Box2DDebugRenderer();
 
 		camera = new OrthographicCamera(Gdx.graphics.getWidth() / PPM, Gdx.graphics.getHeight() / PPM);
-
+		System.out.println("width: " + Gdx.graphics.getWidth() + ", height: " + Gdx.graphics.getHeight());
+		
 		// Create a physics world, the heart of the simulation. The Vector passed in is gravity
 		world = new World(new Vector2(0, -10f), true);
 		debugRenderer.render(world, camera.combined);
@@ -89,31 +98,61 @@ public class VehicleDemo extends ApplicationAdapter
 
 		batch = new SpriteBatch();
 
-		// Create our body definition
-		BodyDef groundBodyDef = new BodyDef();
-		// Set its world position
-		groundBodyDef.position.set(new Vector2(0, -6));
+		
+		BodyEditorLoader groundBodyLoader = new BodyEditorLoader(Gdx.files.internal("physics-editor-project.json").readString());
+		/// 1. Create a BodyDef, as usual.
+	    BodyDef bd = new BodyDef();
+	    bd.position.set(-5, -11);
+	    bd.type = BodyType.StaticBody;
+	 
+	    // 2. Create a FixtureDef, as usual.
+	    FixtureDef fd = new FixtureDef();
+	    fd.density = 1;
+	    fd.friction = 0.5f;
+	    fd.restitution = 0.3f;
+	    fd.filter.groupIndex = - 2;
+	 
+	    // 3. Create a Body, as usual.
+	    Body groundModel = world.createBody(bd);
+	 
+	    // 4. Create the body fixture automatically by using the loader.
+	    groundBodyLoader.attachFixture(groundModel, "Name", fd, groundSprite.getWidth());
+	    
+	    //Vector2 bottleModelOrigin = groundBodyLoader.getOrigin("Name", 500f).cpy();
+	    
+//	    Vector2 bottlePos = bottleModel.getPosition().sub(bottleModelOrigin);
+//	    
+//	    bottleSprite.setPosition(bottlePos.x, bottlePos.y);
+//	    bottleSprite.setOrigin(bottleModelOrigin.x, bottleModelOrigin.y);
+//	    bottleSprite.setRotation(bottleModel.getAngle() * MathUtils.radiansToDegrees);
+	 
 		
 		
-
-		// Create a body from the defintion and add it to the world
-		Body groundBody = world.createBody(groundBodyDef);
-		
-		// Create a polygon shape
-		PolygonShape groundBox = new PolygonShape();
-		
-		// Set the polygon shape as a box which is twice the size of our view port and 20 high
-		// (setAsBox takes half-width and half-height as arguments)
-		// groundBox.setAsBox(100, 10.0f);
-		groundBox.setAsBox(240, 3);
-		
-		// Create a fixture from our polygon shape and add it to our ground body
-		Fixture groundFixture = groundBody.createFixture(groundBox, 0.0f);
-		groundFixture.setFriction(1.0f);
-		
-		
-		// Clean up after ourselves
-		groundBox.dispose();
+//		// Create our body definition
+//		BodyDef groundBodyDef = new BodyDef();
+//		// Set its world position
+//		groundBodyDef.position.set(new Vector2(0, -6));
+//		
+//		
+//
+//		// Create a body from the defintion and add it to the world
+//		Body groundBody = world.createBody(groundBodyDef);
+//		
+//		// Create a polygon shape
+//		PolygonShape groundBox = new PolygonShape();
+//		
+//		// Set the polygon shape as a box which is twice the size of our view port and 20 high
+//		// (setAsBox takes half-width and half-height as arguments)
+//		// groundBox.setAsBox(100, 10.0f);
+//		groundBox.setAsBox(240, 3);
+//		
+//		// Create a fixture from our polygon shape and add it to our ground body
+//		Fixture groundFixture = groundBody.createFixture(groundBox, 0.0f);
+//		groundFixture.setFriction(1.0f);
+//		
+//		
+//		// Clean up after ourselves
+//		groundBox.dispose();
 
 		// Random circles
 		CircleShape circle = new CircleShape();
@@ -162,7 +201,7 @@ public class VehicleDemo extends ApplicationAdapter
 		FixtureDef boxDef = new FixtureDef();
 		boxDef.shape= boxShape;
 		boxDef.shape.setRadius(1.5f);
-		boxDef.density = 2f;
+		boxDef.density = 1f;
 		boxDef.friction = 0.5f;
 		boxDef.restitution = 0.2f;
 		boxDef.filter.groupIndex = -1;
@@ -172,17 +211,22 @@ public class VehicleDemo extends ApplicationAdapter
 		
 		cartShape.setAsBox(1.5f, 0.3f);
 		boxDef.shape = cartShape;
+		
 		cart.createFixture(boxDef);
 		
-//		cartShape.setAsBox(0.4f, 0.15f, new Vector2(-1f, -0.3f), (float) (Math.PI / 3.0f));
-//		boxDef.shape = cartShape;
-//		cart.createFixture(boxDef);
+		cartShape.setAsBox(0.4f, 0.15f, new Vector2(0f, -1f), 0);
+		boxDef.filter.groupIndex = -2;
+		boxDef.density = 10;
+		boxDef.shape = cartShape;
+		cart.createFixture(boxDef);
+		
 //
 //		cartShape.setAsBox(0.4f, 0.15f, new Vector2(1f, -0.3f), (float) (-Math.PI / 3.0f));
 //		boxDef.shape = cartShape;
 //		cart.createFixture(boxDef);
 		
-		cart.resetMassData();
+		//cart.resetMassData();
+		
 		
 		
 
@@ -190,15 +234,15 @@ public class VehicleDemo extends ApplicationAdapter
 
 		// Axles
 		axle1 = world.createBody(bodyDef);
-		cartShape.setAsBox(0.1f, 0.1f, new Vector2(-1f, -1.1f), 0);
+		cartShape.setAsBox(0.1f, 0.1f, new Vector2(-1f, -0.75f), 0);
 		axle1.createFixture(cartShape, 1.0f);
 
 		PrismaticJointDef prismaticJoinDef = new PrismaticJointDef();
 		prismaticJoinDef.initialize(cart, axle1, axle1.getWorldCenter(), Vector2.Y);
-		prismaticJoinDef.lowerTranslation = -0.3f;
-		prismaticJoinDef.upperTranslation = 0.5f;
+		prismaticJoinDef.lowerTranslation = -0.0f;
+		prismaticJoinDef.upperTranslation = 0.0f;
 		prismaticJoinDef.enableLimit = true;
-		prismaticJoinDef.enableMotor = true;
+		prismaticJoinDef.enableMotor = false;
 		
 
 		spring1 = (PrismaticJoint) world.createJoint(prismaticJoinDef);
@@ -206,7 +250,7 @@ public class VehicleDemo extends ApplicationAdapter
 		axle2 = world.createBody(bodyDef);
 
 		//boxDef.SetAsOrientedBox(0.4, 0.1, new b2Vec2(1 + 0.6*Math.cos(-Math.PI/3), -0.3 + 0.6*Math.sin(-Math.PI/3)), -Math.PI/3);
-		cartShape.setAsBox(0.1f, 0.1f, new Vector2(1f, -1.1f), 0);
+		cartShape.setAsBox(0.1f, 0.1f, new Vector2(1f, -.75f), 0);
 		axle2.createFixture(cartShape, 1.0f);
 
 		prismaticJoinDef.initialize(cart, axle2, axle2.getWorldCenter(), Vector2.Y);
@@ -219,11 +263,11 @@ public class VehicleDemo extends ApplicationAdapter
 		
 		
 		
-		circle.setRadius(0.7f);
+		circle.setRadius(0.4f);
 		
 		
 		circleDef.density = 1f;
-		circleDef.friction = 0.65f;
+		circleDef.friction = 3f;
 		circleDef.restitution = 0.3f;
 		circleDef.filter.groupIndex = -1;
 		
@@ -277,13 +321,20 @@ public class VehicleDemo extends ApplicationAdapter
 //			wheel1 = null;
 //			
 //		}
-		motor1.setMaxMotorTorque(0.0f);
-		motor2.setMaxMotorTorque(0.0f);
+		//motor1.setMaxMotorTorque(0.0f);
+		//motor2.setMaxMotorTorque(0.0f);
 		
+		cart.applyTorque(Gdx.input.isKeyPressed(Input.Keys.UP) ? -20f : 0f, true);
+		cart.applyTorque(Gdx.input.isKeyPressed(Input.Keys.DOWN) ? 20f : 0f, true);
+		
+		motor1.setMaxMotorTorque(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? 30f : 0f);
 		motor1.setMotorSpeed(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? -150f : 0f);
-		motor1.setMaxMotorTorque(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? 40f : 0f);
+		motor2.setMaxMotorTorque(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? 30f : 0f);
+		motor2.setMotorSpeed(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ? -150f : 0f);
+		
+//		
 		motor2.setMotorSpeed(Gdx.input.isKeyPressed(Input.Keys.LEFT) ? 150f : 0f);
-		motor2.setMaxMotorTorque(Gdx.input.isKeyPressed(Input.Keys.LEFT) ? 40f : 0f);
+		motor2.setMaxMotorTorque(Gdx.input.isKeyPressed(Input.Keys.LEFT) ? 30f : 0f);
 		
 		
 		//motor1.setMotorSpeed(Gdx.input.isKeyPressed(Input.Keys.LEFT) ? (float)(15 * Math.PI) : 0);
@@ -304,8 +355,11 @@ public class VehicleDemo extends ApplicationAdapter
 //		spring2.setMotorSpeed((float) (spring2.getMotorSpeed() - 10 * spring2.getJointTranslation() * 0.4));
 //		
 //		//System.out.println("spring1 speed: " + spring1.getMotorSpeed());
-		spring1.setMaxMotorForce(125);
-		spring2.setMaxMotorForce(125);
+		spring1.setMaxMotorForce(2000);
+		spring2.setMaxMotorForce(2000);
+		
+		spring1.setMotorSpeed(-0.1f);
+		spring2.setMotorSpeed(-0.1f);
 		
 //		spring2.setMotorSpeed(100);
 		// Advance the world, by the amount of time that has elapsed since the last frame
@@ -331,7 +385,7 @@ public class VehicleDemo extends ApplicationAdapter
 		camera.position.y = sprite.getY() + 2;
 		camera.update();
 		
-		System.out.println(camera.position.x);
+		
 
 		// Create a copy of camera projection matrix
 		debugMatrix = new Matrix4(camera.combined);
@@ -347,7 +401,10 @@ public class VehicleDemo extends ApplicationAdapter
 		//batch.setProjectionMatrix(camera.combined.scale(DEBUG_SCALE, DEBUG_SCALE, 1f));
 		batch.setProjectionMatrix(camera.combined);
 		batch.begin();
+		
+		groundSprite.draw(batch);
 		sprite.draw(batch);
+		
 		// debugRenderer.render(world, camera.combined);
 		
 		// batch.draw(sprite, sprite.getX(), sprite.getY());
